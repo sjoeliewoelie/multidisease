@@ -441,8 +441,27 @@
                 const data = await response.json();
                 
                 if (response.ok && data.success) {
-                    alert('Organization created successfully!');
-                    window.location.href = 'organizations.html';
+                    // Show success message briefly then redirect
+                    const successMessage = document.createElement('div');
+                    successMessage.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: #10b981;
+                        color: white;
+                        padding: 1rem 1.5rem;
+                        border-radius: 0.5rem;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                        z-index: 9999;
+                        font-weight: 500;
+                    `;
+                    successMessage.textContent = `✅ ${data.organization.name} created successfully!`;
+                    document.body.appendChild(successMessage);
+                    
+                    // Redirect after short delay
+                    setTimeout(() => {
+                        window.location.href = 'organizations.html';
+                    }, 1500);
                 } else {
                     alert('Error: ' + (data.message || 'Failed to create organization'));
                 }
