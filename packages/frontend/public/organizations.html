@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizations - Multi-Disease Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 240px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .sidebar-title {
+            font-weight: 500;
+            color: #1e293b;
+        }
+        
+        .sidebar-subtitle {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+        
+        .nav-item {
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.875rem;
+            border-radius: 0;
+            transition: all 0.2s;
+        }
+        
+        .nav-link:hover {
+            background: #f1f5f9;
+            color: #334155;
+        }
+        
+        .nav-link.active {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-right: 2px solid #3b82f6;
+        }
+        
+        .nav-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .nav-section {
+            margin-top: 1rem;
+        }
+        
+        .nav-section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+        }
+        
+        .nav-section-title:hover {
+            background: #f1f5f9;
+        }
+        
+        .nav-subsection {
+            padding-left: 1rem;
+        }
+        
+        .nav-subsection .nav-link {
+            padding-left: 2.25rem;
+            font-size: 0.8125rem;
+        }
+        
+        .nav-subsection .nav-link.active {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            background: #f8fafc;
+        }
+        
+        .topbar {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .add-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        
+        .add-btn:hover {
+            background: #2563eb;
+        }
+        
+        .content-area {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 120px);
+        }
+        
+        .empty-state {
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: #dbeafe;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3b82f6;
+            font-size: 2rem;
+        }
+        
+        .empty-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .empty-description {
+            color: #64748b;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+        
+        .empty-action {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        
+        .empty-action:hover {
+            background: #2563eb;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .topbar {
+                padding: 1rem;
+            }
+            
+            .content-area {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">h</div>
+            <div>
+                <div class="sidebar-title">health</div>
+                <div class="sidebar-subtitle">24/7</div>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-item">
+                <a href="dashboard.html" class="nav-link">
+                    <span class="nav-icon">📋</span>
+                    Tasks
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="#" class="nav-link">
+                    <span class="nav-icon">👤</span>
+                    Patients
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">
+                    <span class="nav-icon">⚙️</span>
+                    Admin
+                    <span style="margin-left: auto;">▼</span>
+                </div>
+                
+                <div class="nav-subsection">
+                    <a href="organizations.html" class="nav-link active">
+                        <span class="nav-icon">●</span>
+                        Organization
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Employees
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Measurements
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Treatment types
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Measurement groups
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Task flows
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Task templates
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Questionnaires
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Email templates
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Documents
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Analytics
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Application settings
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Releases
+                    </a>
+                    <a href="#" class="nav-link">
+                        <span class="nav-icon">●</span>
+                        Event log
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </div>
+    
+    <div class="main-content">
+        <div class="topbar">
+            <h1 class="page-title">Organizations</h1>
+            <button class="add-btn" onclick="window.location.href='add-organization.html'">
+                <span>+</span>
+                Add
+            </button>
+        </div>
+        
+        <div class="content-area">
+            <div class="empty-state">
+                <div class="empty-icon">📄</div>
+                <h2 class="empty-title">There are no organisations yet.</h2>
+                <p class="empty-description">Do you want to add a organisation?</p>
+                <button class="empty-action" onclick="window.location.href='add-organization.html'">
+                    <span>+</span>
+                    Add organisation
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html> 

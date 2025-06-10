@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Organization - Multi-Disease Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 240px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            background: #f8fafc;
+        }
+        
+        .topbar {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .breadcrumb a {
+            color: #64748b;
+            text-decoration: none;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 240px;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #64748b;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-description {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .required {
+            color: #ef4444;
+        }
+        
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            background: #f9fafb;
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .checkbox-item:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        
+        .checkbox-item.checked {
+            background: #eff6ff;
+            border-color: #3b82f6;
+        }
+        
+        .checkbox-input {
+            width: 18px;
+            height: 18px;
+            accent-color: #3b82f6;
+        }
+        
+        .checkbox-icon {
+            font-size: 1.25rem;
+            margin-right: 0.25rem;
+        }
+        
+        .checkbox-label {
+            font-size: 0.875rem;
+            color: #374151;
+            cursor: pointer;
+        }
+        
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">h</div>
+            <div>
+                <div style="font-weight: 500; color: #1e293b;">health</div>
+                <div style="font-size: 0.75rem; color: #64748b;">24/7</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="topbar">
+            <div class="breadcrumb">
+                <a href="organizations.html">Organizations</a>
+                <span style="color: #94a3b8;">></span>
+                <span>Add</span>
+            </div>
+        </div>
+        
+        <div class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">Add organization</h2>
+                    <button class="close-btn" onclick="window.location.href='organizations.html'">×</button>
+                </div>
+                
+                <form class="modal-body" id="organizationForm">
+                    <div>
+                        <h3 class="section-title">Basic details</h3>
+                        <p class="section-description">
+                            These are the central email address and phone number for this organization to send notifications, reminders and alerts to.
+                        </p>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="organizationName">
+                                    Organization name <span class="required">*</span>
+                                </label>
+                                <input type="text" id="organizationName" name="organizationName" class="form-input" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="type">
+                                    Type <span class="required">*</span>
+                                </label>
+                                <select id="type" name="type" class="form-select" required>
+                                    <option value="">Select type</option>
+                                    <option value="HOSPITAL">Hospital</option>
+                                    <option value="SERVICE_DESK">Service Desk</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="serviceDeskOrganization">
+                                    Service desk organisation
+                                </label>
+                                <select id="serviceDeskOrganization" name="serviceDeskOrganization" class="form-select">
+                                    <option value="">Select organization</option>
+                                    <option value="org_002">Medical Support Desk</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="phoneNumber">
+                                    Phone number <span class="required">*</span>
+                                </label>
+                                <input type="tel" id="phoneNumber" name="phoneNumber" class="form-input" required>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label class="form-label" for="emailAddress">
+                                    Email address <span class="required">*</span>
+                                </label>
+                                <input type="email" id="emailAddress" name="emailAddress" class="form-input" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                Treatment(s) <span class="required">*</span>
+                            </label>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item" onclick="toggleCheckbox('diabetes')">
+                                    <input type="checkbox" id="diabetes" name="treatments" value="diabetes" class="checkbox-input">
+                                    <span class="checkbox-icon">❤️</span>
+                                    <label class="checkbox-label" for="diabetes">Diabetes</label>
+                                </div>
+                                <div class="checkbox-item" onclick="toggleCheckbox('thrombosis')">
+                                    <input type="checkbox" id="thrombosis" name="treatments" value="thrombosis" class="checkbox-input">
+                                    <span class="checkbox-icon">🩸</span>
+                                    <label class="checkbox-label" for="thrombosis">Thrombosis</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3 class="section-title">Address</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="address">
+                                Address
+                            </label>
+                            <input type="text" id="address" name="address" class="form-input" placeholder="Enter address">
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='organizations.html'">
+                        Cancel
+                    </button>
+                    <button type="submit" form="organizationForm" class="btn btn-primary" id="saveBtn">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        // Check authentication
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+        
+        // Toggle checkbox and visual state
+        function toggleCheckbox(id) {
+            const checkbox = document.getElementById(id);
+            const checkboxItem = checkbox.closest('.checkbox-item');
+            
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                checkboxItem.classList.add('checked');
+            } else {
+                checkboxItem.classList.remove('checked');
+            }
+        }
+        
+        // Handle form submission
+        document.getElementById('organizationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            
+            // Collect form data
+            const formData = new FormData(e.target);
+            const treatments = Array.from(document.querySelectorAll('input[name="treatments"]:checked'))
+                .map(cb => cb.value);
+            
+            const organizationData = {
+                name: formData.get('organizationName'),
+                type: formData.get('type'),
+                serviceDeskId: formData.get('serviceDeskOrganization') || null,
+                phone: formData.get('phoneNumber'),
+                email: formData.get('emailAddress'),
+                address: {
+                    street: formData.get('address') || '',
+                    city: '',
+                    country: ''
+                },
+                treatments: treatments
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/organizations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(organizationData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    alert('Organization created successfully!');
+                    window.location.href = 'organizations.html';
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to create organization'));
+                }
+            } catch (error) {
+                console.error('Error creating organization:', error);
+                alert('Network error. Please try again.');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+            }
+        });
+    </script>
+</body>
+</html> 

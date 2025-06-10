@@ -1,32 +1,19 @@
-import dotenv from 'dotenv';
 import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
-import { Server as SocketIOServer } from 'socket.io';
 
 import { logger } from './utils/logger';
 import { connectDatabase } from './database/connection';
 import { setupI18n } from './utils/i18n';
 import { errorHandler } from './middleware/errorHandler';
-import { setupRoutes } from './routes';
 import { TaskScheduler } from './services/taskScheduler';
 import { RulesEngine } from './services/rulesEngine';
-import { setupWebSocket } from './services/websocket';
-import { RedisService } from './services/redis';
 
-// Load environment variables
-dotenv.config();
-
-const PORT = process.env.PORT || 5000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const PORT = 5000;
+const NODE_ENV = 'development';
 
 class Application {
   private app: express.Application;
   private server: any;
-  private io: SocketIOServer;
   private taskScheduler: TaskScheduler;
   private rulesEngine: RulesEngine;
 
