@@ -1,0 +1,641 @@
+// Prisma schema for Multi-Disease Treatment Monitoring Platform
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core User Management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String?  @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  avatar    String?
+  locale    String   @default("en")
+  timezone  String   @default("UTC")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  roles               UserRole[]
+  organizations       UserOrganization[]
+  patients            Patient[]
+  caregivers          Caregiver[]
+  healthcareProviders HealthcareProvider[]
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+  tasks               Task[]
+  sessions            UserSession[]
+  twoFactorAuth       TwoFactorAuth?
+  questionnaires      Questionnaire[]
+  measurementGroups   MeasurementGroup[]
+
+  @@map("users")
+}
+
+enum UserRoleType {
+  SUPERADMIN
+  HEALTHCARE_PROVIDER_ADMIN
+  SERVICE_DESK_ADMIN
+  DOCTOR
+  SERVICE_DESK_EMPLOYEE
+  PATIENT
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        UserRoleType @unique
+  description String
+  permissions Json
+
+  // Relationships
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+// Organization Management
+enum OrganizationType {
+  HOSPITAL
+  SERVICE_DESK
+}
+
+model Organization {
+  id               String           @id @default(cuid())
+  name             String
+  type             OrganizationType
+  address          Json
+  phone            String?
+  email            String?
+  website          String?
+  settings         Json             @default("{}")
+  isActive         Boolean          @default(true)
+  serviceDeskId    String?          // For hospitals, reference to their service desk
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relationships
+  users               UserOrganization[]
+  patients            Patient[]
+  healthcareProviders HealthcareProvider[]
+  departments         Department[]
+  serviceDesk         Organization? @relation("HospitalServiceDesk", fields: [serviceDeskId], references: [id])
+  hospitals           Organization[] @relation("HospitalServiceDesk")
+
+  @@map("organizations")
+}
+
+model UserOrganization {
+  id             String @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String
+  permissions    Json   @default("{}")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("user_organizations")
+}
+
+model Department {
+  id             String @id @default(cuid())
+  name           String
+  description    String?
+  organizationId String
+
+  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  healthcareProviders HealthcareProvider[]
+
+  @@map("departments")
+}
+
+// Patient Management
+model Patient {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  organizationId String
+  patientId      String    @unique // Hospital/Clinic patient ID
+  dateOfBirth    DateTime
+  gender         String
+  bloodType      String?
+  allergies      String[]
+  emergencyContact Json?
+  insuranceInfo  Json?
+  medicalHistory Json      @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relationships
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conditions        PatientCondition[]
+  treatments        Treatment[]
+  measurements      VitalMeasurement[]
+  medications       PatientMedication[]
+  caregivers        PatientCaregiver[]
+  appointments      Appointment[]
+  goals             TreatmentGoal[]
+  deviceConnections DeviceConnection[]
+  questionnaireResponses QuestionnaireResponse[]
+
+  @@map("patients")
+}
+
+model HealthcareProvider {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  organizationId String
+  departmentId   String?
+  licenseNumber  String  @unique
+  specialties    String[]
+  credentials    Json    @default("{}")
+  workSchedule   Json    @default("{}")
+
+  // Relationships
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  treatments   Treatment[]
+  appointments Appointment[]
+
+  @@map("healthcare_providers")
+}
+
+model Caregiver {
+  id           String @id @default(cuid())
+  userId       String @unique
+  relationship String
+  permissions  Json   @default("{}")
+
+  // Relationships
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patients PatientCaregiver[]
+
+  @@map("caregivers")
+}
+
+model PatientCaregiver {
+  id          String @id @default(cuid())
+  patientId   String
+  caregiverId String
+  permissions Json   @default("{}")
+  isActive    Boolean @default(true)
+
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  caregiver Caregiver @relation(fields: [caregiverId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, caregiverId])
+  @@map("patient_caregivers")
+}
+
+// Disease & Condition Management
+model Disease {
+  id          String @id @default(cuid())
+  name        String @unique
+  code        String @unique // ICD-10 or similar
+  category    String
+  description String
+  symptoms    String[]
+  riskFactors String[]
+  config      Json   @default("{}")
+
+  // Relationships
+  conditions PatientCondition[]
+  protocols  TreatmentProtocol[]
+
+  @@map("diseases")
+}
+
+model PatientCondition {
+  id          String    @id @default(cuid())
+  patientId   String
+  diseaseId   String
+  severity    String
+  status      String    @default("active") // active, remission, resolved
+  diagnosedAt DateTime
+  notes       String?
+  metadata    Json      @default("{}")
+
+  // Relationships
+  patient    Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  disease    Disease             @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
+  treatments Treatment[]
+  goals      TreatmentGoal[]
+
+  @@map("patient_conditions")
+}
+
+// Treatment Management
+model TreatmentProtocol {
+  id          String @id @default(cuid())
+  name        String
+  diseaseId   String
+  description String
+  guidelines  Json
+  isActive    Boolean @default(true)
+
+  // Relationships
+  disease    Disease     @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
+  treatments Treatment[]
+
+  @@map("treatment_protocols")
+}
+
+model Treatment {
+  id                    String    @id @default(cuid())
+  patientId             String
+  conditionId           String
+  healthcareProviderId  String
+  protocolId            String?
+  name                  String
+  description           String?
+  startDate             DateTime
+  endDate               DateTime?
+  status                String    @default("active")
+  goals                 Json      @default("[]")
+  instructions          Json      @default("{}")
+  metadata              Json      @default("{}")
+
+  // Relationships
+  patient            Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  condition          PatientCondition   @relation(fields: [conditionId], references: [id], onDelete: Cascade)
+  healthcareProvider HealthcareProvider @relation(fields: [healthcareProviderId], references: [id], onDelete: Cascade)
+  protocol           TreatmentProtocol? @relation(fields: [protocolId], references: [id])
+  medications        PatientMedication[]
+  goals              TreatmentGoal[]
+  tasks              Task[]
+  questionnaires     TreatmentQuestionnaire[]
+  measurementGroups  TreatmentMeasurementGroup[]
+  questionnaireResponses QuestionnaireResponse[]
+
+  @@map("treatments")
+}
+
+model TreatmentGoal {
+  id          String    @id @default(cuid())
+  patientId   String
+  conditionId String?
+  treatmentId String?
+  name        String
+  description String
+  targetValue String?
+  currentValue String?
+  unit        String?
+  targetDate  DateTime?
+  status      String    @default("active")
+  priority    String    @default("medium")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relationships
+  patient   Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  condition PatientCondition? @relation(fields: [conditionId], references: [id])
+  treatment Treatment?        @relation(fields: [treatmentId], references: [id])
+
+  @@map("treatment_goals")
+}
+
+// Medication Management
+model Medication {
+  id             String   @id @default(cuid())
+  name           String
+  genericName    String?
+  brandNames     String[]
+  dosageForm     String
+  strength       String?
+  activeIngredients Json
+  sideEffects    String[]
+  contraindications String[]
+  interactions   Json     @default("{}")
+
+  // Relationships
+  patientMedications PatientMedication[]
+
+  @@map("medications")
+}
+
+model PatientMedication {
+  id          String    @id @default(cuid())
+  patientId   String
+  treatmentId String?
+  medicationId String
+  dosage      String
+  frequency   String
+  route       String
+  startDate   DateTime
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  instructions String?
+  prescribedBy String?
+
+  // Relationships
+  patient    Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  treatment  Treatment?  @relation(fields: [treatmentId], references: [id])
+  medication Medication  @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  adherence  MedicationAdherence[]
+
+  @@map("patient_medications")
+}
+
+model MedicationAdherence {
+  id                   String   @id @default(cuid())
+  patientMedicationId  String
+  scheduledTime        DateTime
+  takenTime            DateTime?
+  status               String   @default("scheduled") // scheduled, taken, missed, delayed
+  notes                String?
+
+  // Relationships
+  patientMedication PatientMedication @relation(fields: [patientMedicationId], references: [id], onDelete: Cascade)
+
+  @@map("medication_adherence")
+}
+
+// Vital Signs & Measurements
+model VitalMeasurement {
+  id        String   @id @default(cuid())
+  patientId String
+  type      String   // blood_pressure, heart_rate, blood_glucose, weight, etc.
+  value     Json     // Flexible structure for different measurement types
+  unit      String
+  deviceId  String?
+  source    String   @default("manual") // manual, device, imported
+  timestamp DateTime @default(now())
+  notes     String?
+  metadata  Json     @default("{}")
+
+  // Relationships
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("vital_measurements")
+}
+
+// Device Integration
+model DeviceConnection {
+  id         String   @id @default(cuid())
+  patientId  String
+  deviceType String
+  deviceId   String
+  deviceName String?
+  isActive   Boolean  @default(true)
+  lastSync   DateTime?
+  settings   Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  // Relationships
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("device_connections")
+}
+
+// Task Management System
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  type        String    // medication, measurement, appointment, exercise, etc.
+  priority    String    @default("medium")
+  status      String    @default("pending")
+  assignedTo  String
+  patientId   String?
+  treatmentId String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relationships
+  assignedUser User       @relation(fields: [assignedTo], references: [id], onDelete: Cascade)
+  patient      Patient?   @relation(fields: [patientId], references: [id])
+  treatment    Treatment? @relation(fields: [treatmentId], references: [id])
+
+  @@map("tasks")
+}
+
+// Rules Engine & Automation
+model Rule {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  conditions  Json     // Rule conditions in JSON format
+  actions     Json     // Actions to execute when rule triggers
+  isActive    Boolean  @default(true)
+  priority    Int      @default(0)
+  triggers    String[] // Event types that can trigger this rule
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("rules")
+}
+
+// Notifications & Alerts
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info") // info, warning, error, success
+  channel   String   @default("in_app") // in_app, email, sms, push
+  isRead    Boolean  @default(false)
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Appointments
+model Appointment {
+  id                   String   @id @default(cuid())
+  patientId            String
+  healthcareProviderId String
+  title                String
+  description          String?
+  type                 String   @default("consultation")
+  status               String   @default("scheduled")
+  startTime            DateTime
+  endTime              DateTime
+  location             String?
+  isVirtual            Boolean  @default(false)
+  virtualLink          String?
+  notes                String?
+  metadata             Json     @default("{}")
+
+  // Relationships
+  patient            Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  healthcareProvider HealthcareProvider @relation(fields: [healthcareProviderId], references: [id], onDelete: Cascade)
+
+  @@map("appointments")
+}
+
+// Audit & Compliance
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  resourceId String?
+  changes   Json?
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  // Relationships
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// Session Management
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  expiresAt DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+// Two-Factor Authentication
+model TwoFactorAuth {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  secret    String   // TOTP secret
+  isEnabled Boolean  @default(false)
+  backupCodes String[] // Recovery codes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor_auth")
+}
+
+// Questionnaires & Measurement Groups
+model Questionnaire {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  questions   Json     // Array of question objects
+  isActive    Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  creator               User                    @relation(fields: [createdBy], references: [id])
+  treatmentQuestionnaires TreatmentQuestionnaire[]
+  responses             QuestionnaireResponse[]
+
+  @@map("questionnaires")
+}
+
+model MeasurementGroup {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  measurements Json    // Array of measurement definitions
+  isActive    Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  creator                   User                        @relation(fields: [createdBy], references: [id])
+  treatmentMeasurementGroups TreatmentMeasurementGroup[]
+
+  @@map("measurement_groups")
+}
+
+// Junction tables for treatments
+model TreatmentQuestionnaire {
+  id              String @id @default(cuid())
+  treatmentId     String
+  questionnaireId String
+  isRequired      Boolean @default(false)
+  frequency       String? // daily, weekly, monthly, etc.
+
+  // Relationships
+  treatment     Treatment     @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+  questionnaire Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+
+  @@unique([treatmentId, questionnaireId])
+  @@map("treatment_questionnaires")
+}
+
+model TreatmentMeasurementGroup {
+  id                 String @id @default(cuid())
+  treatmentId        String
+  measurementGroupId String
+  isRequired         Boolean @default(false)
+  frequency          String? // daily, weekly, monthly, etc.
+
+  // Relationships
+  treatment        Treatment        @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+  measurementGroup MeasurementGroup @relation(fields: [measurementGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([treatmentId, measurementGroupId])
+  @@map("treatment_measurement_groups")
+}
+
+// Patient responses to questionnaires
+model QuestionnaireResponse {
+  id              String   @id @default(cuid())
+  patientId       String
+  questionnaireId String
+  treatmentId     String?
+  responses       Json     // Patient's answers
+  submittedAt     DateTime @default(now())
+
+  // Relationships
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  questionnaire Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  treatment     Treatment?    @relation(fields: [treatmentId], references: [id])
+
+  @@map("questionnaire_responses")
+}
+
+// Internationalization
+model Translation {
+  id       String @id @default(cuid())
+  key      String
+  locale   String
+  value    String
+  category String @default("general")
+
+  @@unique([key, locale])
+  @@map("translations")
+} 
